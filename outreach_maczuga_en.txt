@@ -1,0 +1,34 @@
+Subject: A dimension-uniform a posteriori certificate for SPDEs — math.NA endorsement
+
+Hi Paweł,
+
+I'm Hubert Lipski, working independently on certified spectral methods for
+(S)PDEs. Attached is a short paper that extends the RVPINN line (Rojas,
+Pardo, Paszyński et al.) — the discrete dual-norm residual as an a
+posteriori certificate — to a linear bandlimited SPDE on T^d.
+
+The core result: in the mode-space representation (Whittle–Matérn basis in
+space, half-period basis in time) the certificate decomposes per mode, so
+its constant is uniform in dimension d — verified empirically from d=2 to
+d=7 (J from 14 to 6217 modes). Separately, I show the natural Dirichlet
+time basis produces a false error plateau (not a discretisation artifact,
+but a loss of self-adjointness), which the certificate flags and raw
+convergence does not.
+
+The paper survived an independent from-scratch reproduction (fresh code,
+no access to the original scripts), which caught a bug in one metric (a
+missing square root in evaluation) — the correction is documented directly
+in the text, and the repository is fully reproducible.
+
+I don't yet have an arXiv endorsement for math.NA. Would you be willing to
+consider sponsoring the submission? Happy to answer anything about the
+proof, the certificate construction, or the experiments — and if this
+isn't your area, I'd appreciate a pointer to whoever in the group might be
+a better fit.
+
+Best,
+Hubert Lipski
+owcaelfis@gmail.com
+
+[attachment: main.pdf — "A Certified Mode-Space Galerkin Method for
+Stochastic Partial Differential Equations, Uniform in Dimension"]

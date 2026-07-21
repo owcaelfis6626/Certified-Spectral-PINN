@@ -1,0 +1,27 @@
+\begin{abstract}
+Validating a stochastic-PDE surrogate against a numerical reference is
+circular: two reasonable discretisations of the same white-noise-driven
+SPDE can disagree substantially on the identical noise realisation. We
+give a method whose error control never routes through a second
+solver: a mode-space Galerkin scheme for the linear
+bandlimited-Laplacian SPDE on $\mathbb{T}^d \times [0, T]$ with the
+computable a posteriori certificate
+$\|u_\theta - u_{\rm ref}\|_Y^2 \le C_1\mathcal{L}_{\rm RV}(\theta) + C_2/L$
+in $Y = L^2(0, T; H^1)$. In the Whittle--Mat\'ern representation the
+problem decouples into independent per-mode problems: dimension enters
+only through the mode count, the coefficients are a closed-form
+$L \times L$ solve per mode, and both constants are uniform in $d$ by
+construction. The substantive choice is the time basis, and it can
+fail silently: the natural Dirichlet sines stall at a non-decaying
+plateau ($\approx 0.33$ relative error at every $L$ up to $1024$) ---
+detected by the certificate, invisible to compute --- while the
+half-period basis (Dirichlet at $t = 0$, Neumann at $t = T$) removes
+the obstruction and attains the optimal Karhunen--Lo\`eve rate
+$\approx 1.6/\sqrt{L}$ for the rough Ornstein--Uhlenbeck reference.
+Experiments confirm the designed dimension-independence (relative
+error unchanged within $8\%$ as the mode set grows $444\times$ from
+$d = 2$ to $d = 7$) and its transfer to real data (ERA5 temperature,
+SPX implied volatility); a stochastic Allen--Cahn extension drives the
+certified residual to $10^{-8}$ at every $d$, locating the nonlinear
+open problem in the approximation constant, not the certificate.
+\end{abstract}

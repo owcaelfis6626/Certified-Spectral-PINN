@@ -1,0 +1,169 @@
+\section{Method}
+\label{sec:method}
+
+\subsection{The bandlimited-Laplacian SPDE and its mode-space solution}
+\label{sec:method:spde}
+
+We consider the linear bandlimited-Laplacian SPDE \eqref{eq:lin-spde}
+on $\mathbb{T}^d \times [0, T]$, where the noise is bandlimited:
+$\dot W_{K_{\max}}(x, t) = \sum_{k \in \mathcal{H}_{K_{\max}}}
+[\dot B_k^a(t)\cos(k \cdot x) + \dot B_k^b(t)\sin(k \cdot x)]$,
+with $\dot B_k^{a/b}$ independent standard white noises and
+$\mathcal{H}_{K_{\max}} = \{k \in \mathbb{Z}^d : 0 < |k| \le K_{\max}\}$
+the lex-ordered half-space of integer modes (one representative per
+$\cos$/$\sin$ conjugate pair, $k = 0$ excluded since the noise has zero
+mean).
+
+By the spectral representation of the heat semigroup, the solution
+admits the mode-space decomposition
+$u(x, t) = \sum_{k \in \mathcal{H}} [a_k(t)\cos(k \cdot x)
++ b_k(t)\sin(k \cdot x)]$ where each
+$a_k, b_k$ satisfies the per-mode SDE
+\begin{equation}
+da_k(t) = -|k|^2 a_k(t)\, dt + \sigma\, dB_k^a(t), \qquad
+a_k(0) = a_{0,k},
+\label{eq:ou-mode}
+\end{equation}
+i.e., an Ornstein--Uhlenbeck process with rate $|k|^2$, stationary
+variance $\sigma^2/(2|k|^2)$, and analogous equation for $b_k$.
+
+This factored structure is the foundation of the mode-space
+architecture: \emph{the spatial Laplacian becomes diagonal in the
+Fourier basis}, so only the time evolution of each coefficient
+$a_k(t)$, $b_k(t)$ remains to be approximated. Autograd Laplacians and
+FFTs disappear, leaving an $L^2(0, T)$ problem per mode.
+
+\subsection{Trial space and half-period basis}
+\label{sec:method:architecture}
+
+For each mode $k$ we parameterise the trial coefficient as
+\begin{equation}
+a_{\theta, k}(t) = a_{0, k}\,e^{-|k|^2 t} + \sum_{l = 1}^L
+\alpha_{k, l}\,\phi_l(t),
+\label{eq:trial-ansatz}
+\end{equation}
+where $\phi_l(t) = \sqrt{2/T}\sin((2l-1)\pi t/(2T))$ is the half-period
+sine basis \eqref{eq:half-period-basis}. The leading term is the
+deterministic heat semigroup applied to the initial condition: it
+satisfies $\partial_t a + |k|^2 a = 0$ exactly and equals $a_{0, k}$ at
+$t = 0$. Because $\phi_l(0) = 0$ for every $l$, the trial automatically
+satisfies the initial condition $a_{\theta, k}(0) = a_{0, k}$. The
+analogous ansatz parameterises $b_{\theta, k}$.
+
+The half-period basis is the eigenbasis of $-\partial_t^2$ with
+Dirichlet at $t = 0$ and Neumann at $t = T$:
+$-\phi_l''(t) = \mu_l\,\phi_l(t)$ with eigenvalues
+$\mu_l = ((2l-1)\pi/(2T))^2$. The Dirichlet condition at $t = 0$
+matches the IC; the Neumann condition at $t = T$ leaves the terminal
+value of $\phi_l$ free, with $\phi_l(T) = (-1)^{l-1}$. This is the
+crucial property: the trial space can represent the OU noise
+accumulation at terminal time, $a_{\theta, k}(T) = a_{0, k}e^{-|k|^2 T}
++ \sum_l (-1)^{l-1}\alpha_{k, l}$, with $L$ degrees of freedom in the
+terminal value.
+
+\subsection{Galerkin formulation and the closed-form solve}
+\label{sec:method:galerkin}
+
+We use the matched Petrov--Galerkin formulation with test space
+$\{\phi_{l'}(t)\}_{l' = 1}^L$. For each mode $k$, the residual
+projected onto the test space is
+\begin{equation}
+R_{k, l'}(\theta) = \int_0^T \!\bigl[\partial_t a_{\theta, k}(t)
++ |k|^2 a_{\theta, k}(t)\bigr]\,\phi_{l'}(t)\, dt
+- \sigma\,I_{k, l'}^a,
+\label{eq:residual-projected}
+\end{equation}
+where $I_{k, l'}^a = \int_0^T \phi_{l'}(t)\, dB_k^a(t)$ is the
+scalar Wiener integral of $\phi_{l'}$ against the OU forcing
+realisation. The IC term contributes nothing to the residual: by direct
+verification, $\int_0^T [\partial_t(a_{0,k}e^{-|k|^2 t}) + |k|^2
+a_{0,k}e^{-|k|^2 t}]\,\phi_{l'}(t)\, dt = 0$ as a strong-form integral
+(the IC is in the kernel of $\partial_t + |k|^2\,\mathrm{I}$).
+
+Substituting the trial ansatz \eqref{eq:trial-ansatz} into
+\eqref{eq:residual-projected} and using the orthonormality of $\phi_l$,
+\begin{equation}
+R_{k, l'}(\theta) = \sum_{l = 1}^L M_{l, l'}\,\alpha_{k, l}
++ |k|^2\,\alpha_{k, l'} - \sigma\,I_{k, l'}^a,
+\label{eq:residual-galerkin}
+\end{equation}
+where the Galerkin matrix is
+\begin{equation}
+M_{l, l'} := \langle \partial_t \phi_l, \phi_{l'} \rangle_{L^2(0, T)}.
+\label{eq:M-matrix}
+\end{equation}
+
+The matrix $M$ is the half-period analogue of the spectral
+$\partial_t$ operator. Its diagonal entries are $M_{l, l} = 1/T$
+(the boundary term: $\int_0^T \partial_t\phi_l\,\phi_l\,dt
+= \phi_l(T)^2/2 = 1/T$) and off-diagonal entries are explicit
+(Lemma~\ref{lem:M-explicit}). Crucially, $M$ has both symmetric and
+skew-adjoint components: the symmetric part comes from the
+non-vanishing boundary at $t = T$ and is what gives the half-period
+architecture its convergence rate.
+
+The Galerkin equation $R_{k, \cdot}(\theta) = 0$ in matrix form is
+\begin{equation}
+(M^T + |k|^2 \mathrm{I})\,\alpha_k = \sigma\,I_k^a,
+\label{eq:galerkin-system}
+\end{equation}
+a linear system in $L$ unknowns per mode $k$, with the same equation
+for $\beta_k$ replacing $I_k^a$ by $I_k^b$. The solution
+$\alpha_k^* = (M^T + |k|^2\mathrm{I})^{-1}\sigma I_k^a$ is the
+closed-form Galerkin coefficient for the linear SPDE. For the linear
+case, no PINN training is needed: the spectral coefficients are
+obtainable in time $O(JL^3)$.
+
+\subsection{The closed-form Galerkin matrix $M$}
+\label{sec:method:M}
+
+\begin{lemma}[Half-period $\partial_t$ matrix]
+\label{lem:M-explicit}
+The matrix $M_{l, l'} = \langle \partial_t \phi_l, \phi_{l'}
+\rangle_{L^2(0, T)}$ for $\phi_l(t) = \sqrt{2/T}\sin((2l-1)\pi t/(2T))$
+on $[0, T]$ has the following structure:
+\begin{enumerate}
+\item Diagonal: $M_{l, l} = 1/T$ for all $l \ge 1$.
+\item Symmetric component: $M_{l, l'} + M_{l', l} = (2/T)(-1)^{l + l'}$
+for all $l \ne l'$.
+\item Closed form (off-diagonal, $l \ne l'$):
+$$
+M_{l, l'} = \frac{2l-1}{2T}\left[\frac{1+(-1)^{l+l'}}{l+l'-1}
++ \frac{1-(-1)^{l+l'}}{l'-l}\right].
+$$
+Equivalently: $M_{l,l'} = (2l-1)/((l+l'-1)T)$ when $l+l'$ is even,
+and $M_{l,l'} = (2l-1)/((l'-l)T)$ when $l+l'$ is odd.
+\end{enumerate}
+\end{lemma}
+
+In particular, $M$ is dense (no sparsity to exploit beyond the
+diagonal) but is $L \times L$ with $L$ moderate, so the linear solve
+\eqref{eq:galerkin-system} is fast at every $d$.
+
+\subsection{Computational summary}
+\label{sec:method:summary}
+
+The complete linear-case algorithm:
+
+\begin{algorithm}[h]
+\caption{Closed-form half-period Galerkin solve}
+\label{alg:halfperiod-solve}
+\begin{algorithmic}[1]
+\State Build $\mathcal{H}_{K_{\max}}$ (lex half-space modes, $J = |\mathcal{H}|$).
+\State Sample IC and Wiener path: $a_{0,k}, b_{0,k}$ and $\{dB_k^{a/b}\}$.
+\State Precompute Wiener integrals $I_{k, l'}^{a/b}$ for $k \in \mathcal{H}$, $l' = 1, \ldots, L$.
+\State Precompute $M$ (Lemma~\ref{lem:M-explicit}) and Cholesky/LU of $(M^T + |k|^2 \mathrm{I})$ per mode.
+\State For each mode $k$: solve \eqref{eq:galerkin-system} for $\alpha_k^*, \beta_k^*$.
+\State Reconstruct $u_\theta(x, t)$ via the trial ansatz.
+\end{algorithmic}
+\end{algorithm}
+
+Storage: $O(JL)$ for the Wiener integrals, $O(L^2)$ for $M$, $O(JL)$
+for the coefficients. Compute: $O(JL^3)$ for the per-mode solves
+(dominated by the LU of $(M^T + |k|^2\mathrm{I})$ at each $k$, though
+$M$ is shared so amortisation reduces this to $O(L^3 + JL^2)$).
+
+\emph{No autograd. No FFT. No exponential cost in $d$.} The only
+$d$-dependent quantity is $J = |\mathcal{H}_{K_{\max}}|$, which grows
+polynomially with $d$ at fixed $K_{\max}$; the per-mode cost is
+independent of $d$.

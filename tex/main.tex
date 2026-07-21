@@ -1,0 +1,43 @@
+% Paper 7 — A Certified Mode-Space Galerkin Method for SPDEs (uniform in d)
+% Build: pdflatex main; bibtex main; pdflatex main; pdflatex main.
+
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{graphicx}
+\usepackage[margin=1in]{geometry}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{booktabs}
+\usepackage{cite}
+\usepackage{algorithm, algpseudocode}
+\usepackage{microtype}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+
+\title{A Certified Mode-Space Galerkin Method for\\
+Stochastic Partial Differential Equations,\\
+Uniform in Dimension}
+\author{Hubert Lipski}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\input{abstract}
+\input{intro}
+\input{method}
+\input{theorem}
+\input{experiments}
+\input{discussion}
+
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\end{document}

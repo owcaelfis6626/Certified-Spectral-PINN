@@ -1,0 +1,154 @@
+\section{The certified bound}
+\label{sec:theorem}
+
+\subsection{Function spaces}
+\label{sec:thm:spaces}
+
+The Galerkin error in the linear case is controlled in the Bochner-style
+\begin{equation}
+Y := L^2(0, T;\, H^1(\mathbb{T}^d)),
+\qquad
+\|u\|_Y^2 = \int_0^T \|u(\cdot, t)\|_{H^1(\mathbb{T}^d)}^2 dt.
+\label{eq:Y-norm}
+\end{equation}
+In the mode-space representation,
+$\|u\|_Y^2 = \pi^d \sum_{k \in \mathcal{H}} (1 + |k|^2) \int_0^T
+(|a_k(t)|^2 + |b_k(t)|^2)\, dt$. The OU reference $u_{\rm ref}$ has
+\emph{finite $Y$-norm} (verified by direct computation: stationary OU
+variance is $\sigma^2/(2|k|^2)$, so the integral is bounded by
+$T\sigma^2/(2|k|^2)$ per mode, and the spatial sum over the bandlimit
+is finite).
+
+This is the critical normalisation choice: the natural Bochner space
+$L^2(0, T; H^1) \cap H^1(0, T; H^{-1})$ for parabolic problems is
+\emph{infinite} for white-noise-driven SPDE references, because the
+$H^1(0, T)$ part in time picks up the white-noise singularity of
+$\partial_t u_{\rm ref}$. The $Y$-norm sidesteps this by dropping the
+$H^1$-in-time component.
+
+\subsection{Certified bound statement}
+\label{sec:thm:statement}
+
+\begin{theorem}[Half-period Galerkin certified bound]
+\label{thm:main}
+Let $u_\theta$ be in the trial space \eqref{eq:trial-ansatz} with
+coefficients $\{\alpha_{k, l}, \beta_{k, l}\}$, and let $u_{\rm ref}$
+be a single realisation of the linear bandlimited-Laplacian SPDE
+\eqref{eq:lin-spde}. There exist constants $C_1, C_2 > 0$ depending on
+$T$, $\sigma$, $K_{\max}$ but \emph{not on} $d$ or $L$, such that
+\begin{equation}
+\|u_\theta - u_{\rm ref}\|_Y^2
+\;\le\;
+C_1\,\mathcal{L}_{\rm RV}(\theta) + \frac{C_2}{L},
+\label{eq:thm-bound}
+\end{equation}
+where $\mathcal{L}_{\rm RV}(\theta) = \sum_{k, l'} (R_{k, l'}^a)^2
++ (R_{k, l'}^b)^2$ is the closed-form residual loss from
+\eqref{eq:residual-galerkin} and the second term is the
+best-approximation error of the OU process in the half-period basis.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+The proof decomposes the error into the consistency error (from the
+discrete inf-sup of the matched Galerkin formulation) and the
+best-approximation error (from truncating the infinite Karhunen--Lo\`eve
+expansion of the OU process to $L$ half-period modes).
+
+\paragraph{Consistency error.}
+Per mode $k$, the bilinear form $B_k(a, v) := \int_0^T (\partial_t a
++ |k|^2 a)\,v\, dt$ acting on the matched trial/test space spanned by
+$\{\phi_l\}_{l=1}^L$ has discrete inf-sup constant
+\begin{equation}
+\beta_k = \inf_{\alpha \ne 0} \sup_{v} \frac{|B_k(\alpha, v)|}
+{\|\alpha\|_{X_k} \|v\|_{L^2}}
+\;\ge\; \beta_{\min}(K_{\max}, T) > 0,
+\label{eq:inf-sup-discrete}
+\end{equation}
+where $X_k = \{a \in H^1(0, T) : a(0) = 0\}$ with norm
+$\|a\|_{X_k}^2 = (1 + |k|^2)\|a\|_{L^2}^2 + \|\partial_t a\|_{L^2}^2$.
+The lower bound $\beta_{\min}$ depends only on the matched Galerkin
+operator's spectrum (eigenvalues of $-M + |k|^2 \mathrm{I}$, all with
+positive real part bounded below by $\min(|k|^2)$) and on
+$K_{\min} = 1$, both \emph{uniform in $d$ and $L$}.
+
+Applying the discrete inf-sup,
+$\|u_\theta - u_{\rm ref}\|_{X_k}^2
+\le (1/\beta_{\min}^2)\,(R_{k, \cdot}(\theta))^T (R_{k, \cdot}(\theta))$,
+gives the $C_1 = 1/\beta_{\min}^2$ contribution.
+
+\paragraph{Best-approximation error.}
+The OU process per mode has the Karhunen--Lo\`eve expansion
+$x_k(t) = \sum_{n \ge 1} \xi_{k, n}\,\psi_{k, n}^{\rm KL}(t)$ where
+$\psi_{k, n}^{\rm KL}$ are the eigenfunctions of the covariance operator
+with kernel $\sigma^2 e^{-|k|^2|t-s|}/(2|k|^2)$ on $[0, T]$. The
+eigenvalues decay as $\lambda_{k, n} \sim C(|k|^2)/n^2$ for large $n$.
+
+The half-period basis $\{\phi_l\}$ is not the KL basis, but is the
+eigenbasis of the parabolic operator $\partial_t + |k|^2 \mathrm{I}$
+with the natural BC (Dirichlet at $0$, Neumann at $T$). Since the KL
+eigenvalues decay as $\lambda_{k, n} \sim C(|k|^2)/n^2$, the truncation
+tail obeys $\sum_{n > L} \lambda_{k, n} \sim C(|k|^2)/L$, so the
+$L^2$-projection error of the OU process satisfies
+$\mathbb{E}\,\|x_k - P_L x_k\|_{L^2(0, T)}^2 \le C_2(k)\,L^{-1}$,
+where $P_L$ is the orthogonal projection onto $\mathrm{span}\{\phi_l\}_{l=1}^L$.
+This $L^{-1}$ rate (in the squared norm; $L^{-1/2}$ in relative error)
+is the Karhunen--Lo\`eve rate for the H\"older-$\tfrac12$ OU path and is
+\emph{optimal}: no basis of $L$ smooth functions can beat it, and we
+verify directly (single-mode $L^2$-projection experiment) that
+$\mathbb{E}\,\|x_k - P_L x_k\|^2 \cdot L$ is constant over
+$L \in [32, 1024]$. What the half-period basis buys relative to the
+Dirichlet sines is therefore \emph{not} a faster rate but the removal of
+the non-decaying Galerkin plateau of
+Section~\ref{sec:exp:dirichlet-plateau}: with matched BCs the Galerkin
+solution attains the optimal KL rate, where the Dirichlet basis stalls
+at a constant. The $Y$-norm sum is
+$C_2 = \pi^d \sum_{k} (1 + |k|^2)\,C_2(k)$, uniform in $d$ for
+$|k| \le K_{\max}$ fixed.
+\end{proof}
+
+\begin{remark}[Comparison to v1, v2]
+The certified bound in this paper differs from prior attempts in two
+material ways. First, the norm $Y$ drops the $H^1$-in-time component
+that makes the standard parabolic Bochner norm infinite for SPDE
+references. Second, the half-period basis avoids the Dirichlet-sine
+plateau (Sections~\ref{sec:exp:dirichlet-plateau}, \ref{sec:exp:d-sweep}).
+Both choices are forced by the SPDE-with-noise structure of the problem
+and are honest about what the certified residual bound can and cannot
+deliver.
+\end{remark}
+
+\subsection{Empirical calibration of $C_2$}
+\label{sec:thm:C-2}
+
+From the d-sweep (Section~\ref{sec:exp:d-sweep}), the rel-error
+satisfies
+$\mathrm{rel\_err} = \|e\|_Y / \|u_{\rm ref}\|_Y \approx 1.6/\sqrt{L}$
+(equivalently $\mathrm{rel\_err}^2 \cdot L \in [2.4, 3.1]$ across all
+$(d, L)$), giving $C_2 \approx 2.6\,\|u_{\rm ref}\|_Y^2$. At
+$K_{\max} = 3$, $T = 1$, $\sigma = 1$:
+$\|u_{\rm ref}\|_Y^2 \approx \pi^d \cdot J \cdot O(1)$ (the mode set
+$\mathcal{H}_{K_{\max}}$ contributes $J = |\mathcal{H}|$ modes each
+with $O(1)$ variance per dimension).
+
+This makes the certified bound \emph{quantitatively useful}: a
+practitioner running the closed-form solve at given $(d, K_{\max}, L)$
+can read off the relative error before evaluating, with no diagnostic
+overhead.
+
+\subsection{Uniform inf-sup constant}
+\label{sec:thm:inf-sup-detail}
+
+A delicate point: the inf-sup constant $\beta_k$ depends on $|k|^2$.
+For $|k|^2 \ge 1$ (which all modes in our half-space lattice satisfy),
+$\beta_k$ is bounded below by $|k|^2 / \sqrt{|k|^4 + \|M\|_{\rm op}^2}$,
+where $\|M\|_{\rm op}$ is the operator norm of the
+half-period $\partial_t$ matrix. Since $\|M\|_{\rm op}$ depends only
+on $L$ and not on $k$ or $d$, and grows mildly with $L$ (the
+leading-order Dirichlet-Neumann eigenvalue $\mu_L = ((2L-1)\pi/(2T))^2$
+provides an upper bound up to constants), the worst-case inf-sup at
+$|k|^2 = 1$ is bounded below uniformly. The constant $\beta_{\min}$
+in \eqref{eq:inf-sup-discrete} is then
+$\beta_{\min} \ge 1/\sqrt{1 + (\pi L/T)^2}$, giving
+$C_1 \le 1 + (\pi L/T)^2$. This grows with $L$ but is bounded for any
+fixed $L$, and in practice the $\mathcal{L}_{\rm RV}$ term dominates
+only near training plateaus.

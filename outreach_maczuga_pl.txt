@@ -1,0 +1,19 @@
+Temat: Certyfikat a posteriori dla SPDE niezależny od d — pytanie o endorsement math.NA
+
+Dzień dobry,
+
+nazywam się Hubert Lipski, pracowalem przez ostatnie miesiace nad rozwiazywaniem stochastycznych czastkowych rownan rozniczkowych, czego efektem jest praca rozwijajaca
+
+
+Nie mam jeszcze endorsementu na arXiv w kategorii math.NA. Czy byłby Pan
+skłonny rozważyć sponsorowanie zgłoszenia? Chętnie odpowiem na każde pytanie
+dotyczące dowodu, konstrukcji certyfikatu czy eksperymentów — a jeśli praca
+nie pasuje do Pana obszaru, będę wdzięczny za wskazanie, do kogo w grupie
+mógłbym się zwrócić.
+
+Z poważaniem,
+Hubert Lipski
+owcaelfis@gmail.com
+
+[załącznik: main.pdf — "A Certified Mode-Space Galerkin Method for
+Stochastic Partial Differential Equations, Uniform in Dimension"]

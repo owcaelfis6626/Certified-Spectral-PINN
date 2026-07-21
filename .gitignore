@@ -1,0 +1,28 @@
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.bbl
+*.blg
+*.toc
+*.spl
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.nav
+*.snm
+*.vrb
+*.idx
+*.ind
+*.ilg
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Tooling / scratch
+CLAUDE.md
+for claude/

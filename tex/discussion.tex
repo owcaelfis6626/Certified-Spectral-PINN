@@ -1,0 +1,146 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{What the result says and does not say}
+\label{sec:disc:scope}
+
+\textbf{Does.} For the linear bandlimited-Laplacian SPDE on
+$\mathbb{T}^d$, the half-period Galerkin architecture gives a
+certified $L^2(0, T; H^1)$ error bound of the form
+$\|e\|_Y^2 \le C_1\,\mathcal{L}_{\rm RV} + C_2/L$, with constants
+uniform in $d$. The closed-form per-mode solve recovers the certified
+optimal coefficients with no iterative training.
+
+\textbf{Does not.}
+\begin{itemize}
+\item The bound is in the $Y$-norm, not the standard parabolic
+Bochner norm $L^2(0, T; H^1) \cap H^1(0, T; H^{-1})$. The Bochner
+norm is infinite for SPDE references because of the white-noise
+contribution to $\partial_t u_{\rm ref}$, so any norm tight enough
+to control the parabolic structure must be weakened in the time
+direction.
+\item The certified bound does not extend trivially to non-bandlimited
+forcing ($\alpha$-stable noise, fractional Laplacian without
+bandlimit). Paper~5 in this series treats some of these cases
+empirically; the certified bound for them is open.
+\item The bound holds for a fixed noise realisation. The ensemble
+$W_2$ law-distance bound of Paper~1 is complementary, not implied
+by Theorem~\ref{thm:main}.
+\end{itemize}
+
+\subsection{Extension to nonlinear SPDEs}
+\label{sec:disc:nonlinear}
+
+For the nonlinear stochastic Allen--Cahn equation
+$\partial_t u = \Delta u + u - u^3 + \sigma\,\dot W_{K_{\max}}$,
+the per-mode equation becomes
+$\partial_t a_k + |k|^2 a_k - a_k + \mathrm{cubic}_k(\{a_{k'}\}) = \sigma\,\dot B_k^a$,
+where $\mathrm{cubic}_k(\{a_{k'}\}) = \langle u_\theta^3, \cos(k \cdot
+x)\rangle$ involves a triple convolution of mode coefficients. This
+breaks the per-mode decoupling that makes the linear case
+$O(JL^3)$.
+
+A natural iterative architecture: parameterise $\alpha_{k, l}$ as a
+direct learnable table (one scalar per $(k, l)$ pair) and compute the
+cubic projection $\mathrm{cubic}_k$ via FFT on an
+$N_x^d$ spatial grid ($N_x = 32 > 2 \cdot 3 \cdot K_{\max}$, no
+aliasing). The lookup table is a $JL$-dim parameter vector; at $d = 2$,
+$K_{\max} = 3$, $L = 128$ this is $14 \times 128 \approx 3\,600$
+parameters.
+
+\paragraph{The residual loss is deterministic; use a second-order solver.}
+The Galerkin residual loss $\mathcal{L}_{\rm RV}$ is a \emph{deterministic}
+function of the coefficient table: the Gauss--Legendre quadrature nodes,
+the FFT cubic projection, and the Galerkin matrix $M$ and Wiener
+integrals $I_{k, l}$ are all fixed at oracle construction. Training is
+therefore full-batch minimisation of a smooth (degree-six) polynomial in
+the coefficients, with no stochastic-gradient noise. A first-order method
+(Adam, 5000 steps, cosine LR $10^{-2} \to 10^{-4}$) converges at $d = 2$
+but \emph{diverges} for $d \ge 3$: the fitted rel\_err slope vs $L$ is
+$+0.45$ at $d = 3$ ($J = 61$) and $+0.64$ at $d = 4$ ($J = 212$), with
+rel\_err $> 1$ at $d = 4$. This is not gradient noise --- there is none
+--- but Adam's diagonal preconditioner failing on the increasingly
+anisotropic cross-mode Hessian as $J$ grows. Replacing Adam with L-BFGS
+(strong-Wolfe line search) restores convergence at every $d$.
+
+\paragraph{Convergence under L-BFGS.}
+With L-BFGS the residual is driven to $\mathcal{L}_{\rm RV} \approx
+10^{-8}$ at all $d$, and the relative error decreases monotonically in
+$L$ (3 seeds, $K_{\max} = 3$):
+
+\begin{center}
+\begin{tabular}{rrccc}
+\toprule
+$d$ & $J$ & $L = 32$ & $L = 64$ & $L = 128$ \\
+\midrule
+2 & 14  & 0.313 & 0.237 & 0.190 \\
+3 & 61  & 0.373 & 0.320 & 0.274 \\
+4 & 212 & 0.513 & 0.482 & 0.459 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent with log-log slopes $-0.36, -0.22, -0.08$ at $d = 2, 3, 4$.
+Two points deserve emphasis. First, the certified residual is satisfied
+at every $d$ ($\mathcal{L}_{\rm RV} \approx 10^{-8}$), so the bound
+\eqref{eq:thm-bound} holds and the divergence above was an optimiser
+artifact, not a failure of the formulation. Second --- and unlike the
+\emph{linear} case, whose rate is uniform in $d$ --- the nonlinear rate
+\emph{degrades with $d$}. Since $\mathcal{L}_{\rm RV} \to 0$, this is not
+residual error but a growth of the best-approximation constant $C_2$ with
+$d$: at fixed $K_{\max}$ and $\sigma$, higher $d$ activates more modes,
+raising the total field variance $\sum_k S(k)$ and pushing the dynamics
+deeper into the nonlinear regime. Characterising this $d$-dependence
+(e.g.\ via a $\sigma$-rescaling that holds the field variance fixed) is
+the main open item for the nonlinear extension.
+
+The certified bound for the nonlinear case would have an additional
+cubic-projection-error term, bounded by the MC sampling error of
+$\mathrm{cubic}_k$ at the trained coefficients.
+
+\subsection{Relation to the spectral PINN series}
+\label{sec:disc:series}
+
+Paper~1 \cite{paper1} introduced the distributional-regulariser
+programme for $d = 2$ stochastic SPDEs. Paper~5 \cite{paper5} extended
+to fractional Laplacians at $d \le 5$ with $\alpha$-stable forcing.
+Paper~6 \cite{paper6} introduced the Whittle--Mat\'ern spectral oracle
+as a $d$-independent training reference, enabling cross-validation up
+to $d = 7$. The present paper closes the theoretical chain by giving
+the first certified pointwise (path-level) bound for the spectral PINN
+methodology at $d \ge 5$.
+
+The framework is complementary to the law-distance ($W_2$) bound of
+Paper~1: that bound controls the law of $u_\theta$ vs the SPDE law in
+expectation across realisations; Theorem~\ref{thm:main} controls the
+path-level error at a fixed realisation. The composition gives both
+legs certified.
+
+\subsection{Limitations and future work}
+\label{sec:disc:limits}
+
+\begin{enumerate}
+\item \textbf{Analytical rate.} The $L^{-1}$ rate (in the squared
+norm) in \eqref{eq:thm-bound} follows from the KL-eigenvalue tail of
+the OU process ($\lambda_n \sim n^{-2}$, tail $\sim L^{-1}$) and is
+verified empirically to $\mathrm{rel\_err}^2 \cdot L \approx 2.6$;
+it is optimal for the H\"older-$\tfrac12$ reference. The constant
+$C_2$ is currently calibrated, not derived from first principles. A
+rigorous derivation is open.
+\item \textbf{Nonlinear extension.} The lookup-table / FFT-cubic
+architecture, trained with L-BFGS, converges at $d = 2, 3, 4$ (rel\_err
+slopes $-0.36, -0.22, -0.08$; $\mathcal{L}_{\rm RV} \le 10^{-8}$
+throughout), so the certified residual is satisfied in the nonlinear
+case. The rate degrades with $d$ as the best-approximation constant
+grows; a full nonlinear bound must capture this $d$-dependence, the
+main open item.
+\item \textbf{High-dimensional spatial transfer.} The architecture
+scales polynomially with $d$ (through $J = |\mathcal{H}_{K_{\max}}|$),
+not exponentially. The d-sweep verifies this up to $d = 7$ at
+$K_{\max} = 3$ ($J = 6217$); larger $d$ on this hardware needs
+$J$-sparsification (low-rank approximations on the WM mode set), open.
+\item \textbf{Live data.} The bandlimited-Laplacian SPDE is a synthetic
+test case. Application to applied SPDEs (rough volatility, anomalous
+diffusion) requires either calibration or a different physical
+setup; this is treated in companion papers~2--4 of this series.
+\end{enumerate}

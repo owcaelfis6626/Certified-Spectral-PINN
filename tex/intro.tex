@@ -1,0 +1,161 @@
+\section{Introduction}
+\label{sec:intro}
+
+How does one trust a surrogate solver for a stochastic PDE? The
+standard answer --- validate against a numerical reference --- carries
+a failure mode that is easy to state and, as it turns out, easy to
+measure. In the companion paper~\cite{paper1} we ran two independent,
+individually reasonable discretisations (ADI with upwind advection;
+MUSCL--minmod TVD finite volume) of the same white-noise-driven
+nonlinear SPDE on the \emph{identical} noise realisation: they differ
+by $0.69$ relative $L^2$ pathwise and by a factor $2.1$ in field
+variance at the working grid, and for space--time white noise in two
+dimensions there is no continuum limit to arbitrate between them ---
+the target is lattice-defined, and the lattice is solver-flavoured.
+Every reference-validated claim inherits that flavour silently. The
+structural remedy is an \emph{a posteriori certificate}: a computable
+bound on the distance to the solution of the \emph{declared} operator
+equation, with explicit constants, that never routes trust through a
+second solver.
+
+\paragraph{This paper.} We construct such a certificate, together with
+the method it certifies, for the linear bandlimited-Laplacian SPDE
+\begin{equation}
+\partial_t u = \Delta u + \sigma\,\dot W_{K_{\max}},
+\qquad u(\cdot, 0) = u_0,
+\label{eq:lin-spde}
+\end{equation}
+on the torus $\mathbb{T}^d \times [0, T]$, where $\dot W_{K_{\max}}$ is
+a spatially bandlimited Gaussian white noise. In the Whittle--Mat\'ern
+spectral representation
+$u(x, t) = \sum_{k \in \mathcal{H}_{K_{\max}}}
+[a_k(t)\cos(k \cdot x) + b_k(t)\sin(k \cdot x)]$, each coefficient
+$a_k, b_k$ is an Ornstein--Uhlenbeck process, and the SPDE decouples
+into $J = |\mathcal{H}_{K_{\max}}|$ independent scalar problems in
+time. Working in this basis is the design decision from which
+everything follows: the spatial Laplacian becomes the diagonal
+multiplication by $-|k|^2$, the Galerkin system is an explicit
+$L \times L$ solve per mode, and --- because the certificate is
+assembled per mode --- \emph{the spatial dimension enters only through
+the mode count}. Dimension-independence of the certified bound is not
+an empirical surprise to be discovered but a property of the
+architecture to be verified; our experiments verify it across a
+$444\times$ growth of the mode set. The price of the construction is
+the choice of a time basis $\{\psi_l(t)\}$ in which the per-mode
+equation is tested --- and, as we show, that choice can fail silently.
+
+\paragraph{Context.} The method sits at the meeting point of two
+literatures. Residual-variational physics-informed networks (RVPINNs)
+minimise the residual in a discrete dual norm against a finite test
+space and yield reliable, efficient a posteriori estimators
+\cite{RVPINN2024,Rojas2023}, of the form
+$\|u_\theta - u_{\rm ref}\|_V \le C\,\|R(u_\theta)\|_{V_h^*}$ with $C$
+an inf-sup constant; that literature concentrates on deterministic
+PDEs in $d \le 3$. Spectral (mode-space) representations for SPDE
+surrogates were developed in the distributional-regulariser line
+\cite{paper1,paper5,paper6}, whose theoretical guarantee is a
+Mishra--Molinaro-style \cite{Mishra2022} law-distance ($W_2$) bound
+with no path-level control; spectral-domain networks have also been
+proposed for deterministic high-dimensional PDEs \cite{YuOseledets2026},
+without per-instance error control. A priori error bounds for
+physics-informed and operator learning are given by De~Ryck and Mishra
+\cite{DeRyckMishra2022}; the present certificate is the complementary
+a posteriori object --- evaluated on the computed field rather than
+guaranteeing that a good one exists --- and its constant is the
+computable, sharp realisation of their abstract stability constant.
+For the linear SPDE treated here no network and no training are
+involved at all: the certified object is a closed-form Galerkin solve,
+and the neural parameterisations of the companion papers appear only
+in the nonlinear extension of Section~\ref{sec:discussion}.
+
+\subsection{The time basis can fail silently: plateau and cure}
+\label{sec:intro:halfperiod}
+
+A natural choice for the time basis is the standard Dirichlet sine
+basis $\psi_l(t) = \sqrt{2/T}\sin(\pi l t/T)$, $l = 1, \ldots, L$,
+which vanishes at both endpoints. With this basis the trial-space
+ansatz
+$a_{\theta,k}(t) = a_{0,k} e^{-|k|^2 t} + \sum_l \alpha_{k,l}\psi_l(t)$
+satisfies $a_{\theta,k}(T) = a_{0,k} e^{-|k|^2 T}$ exactly, by
+construction; it cannot represent the SPDE's terminal noise
+accumulation $x_k(T) = \sigma\int_0^T e^{-|k|^2(T-s)}\,dB(s)$. The
+Galerkin formulation in this basis produces a linear system that
+admits a unique solution, but the resulting coefficients $\alpha$
+\emph{differ from the $L^2$-projection coefficients} of the true OU
+process by a tail-correction term that does not vanish as $L$ grows.
+Empirically, the relative $L^2(0,T;H^1)$ error stalls at a plateau of
+$\approx 0.33$ regardless of $L$, up to $L = 1024$
+(Section~\ref{sec:exp:dirichlet-plateau}) --- a manifestation of the
+non-self-adjointness of the parabolic operator
+$\partial_t + |k|^2\,\mathrm{I}$ under this restricted test space.
+No amount of compute repairs it, and without an error instrument the
+failure is invisible: the Galerkin system remains well-posed and its
+residual small in the wrong norm. The certificate is precisely the
+instrument that exposes it.
+
+The cure is architectural: replace the Dirichlet sine basis with the
+\emph{half-period sine basis}
+\begin{equation}
+\phi_l(t) = \sqrt{2/T}\,\sin\!\left(\frac{(2l-1)\pi t}{2T}\right),
+\qquad l = 1, 2, \ldots, L,
+\label{eq:half-period-basis}
+\end{equation}
+which satisfies $\phi_l(0) = 0$ but $\phi_l(T) = (-1)^{l-1}$ --- free
+at the terminal time. These are the eigenfunctions of $-\partial_t^2$
+with Dirichlet at $t = 0$ and Neumann at $t = T$, the natural boundary
+conditions for the parabolic problem. With matched boundary conditions
+the Galerkin error attains the \emph{optimal} Karhunen--Lo\`eve rate
+for the rough (H\"older-$\tfrac12$) OU reference,
+$\mathrm{rel\_err} \approx 1.6/\sqrt{L}$, uniformly across
+$d \in \{2, 3, 5, 7\}$ (Section~\ref{sec:exp:d-sweep}). The
+corresponding certified bound is
+\begin{equation}
+\|u_\theta - u_{\rm ref}\|_Y^2
+\;\le\; C_1\,\mathcal{L}_{\rm RV}(\theta) + \frac{C_2}{L},
+\label{eq:main-bound}
+\end{equation}
+with $C_1$ from the discrete inf-sup constant of the matched Galerkin
+formulation and $C_2$ from the best-approximation error of the OU
+process in the half-period basis. Both constants are uniform in $d$.
+
+\subsection{Contributions}
+\label{sec:intro:contrib}
+
+\begin{enumerate}
+\item \textbf{A certified mode-space Galerkin method, uniform in $d$
+by construction} (Sections~\ref{sec:method}, \ref{sec:theorem}).
+Trial/test bases that make the Gram matrix block-diagonal in $k$ and
+the per-mode time operator an explicit $L \times L$ system; the
+certificate $\|u_\theta - u_{\rm ref}\|_Y^2 \le
+C_1\mathcal{L}_{\rm RV} + C_2/L$ assembles per mode, so $d$ enters
+only through the mode count. Closed-form solve; no autograd, no FFT,
+no training.
+
+\item \textbf{A silent structural failure, diagnosed and cured}
+(Section~\ref{sec:exp:dirichlet-plateau}). The natural Dirichlet
+time basis stalls at a non-decaying plateau ($\approx 0.33$ up to
+$L = 1024$); the root cause is identified at the coefficient level
+(Galerkin $\ne$ $L^2$ projection, non-vanishing tail correction);
+the half-period basis removes the obstruction and attains the
+optimal Karhunen--Lo\`eve rate $\approx 1.6/\sqrt{L}$ for the rough
+reference.
+
+\item \textbf{Verification of the designed dimension-independence,
+synthetic and real} (Sections~\ref{sec:exp:d-sweep},
+\ref{sec:exp:realworld}). Across $d \in \{2, 3, 5, 7\}$ ($J$ growing
+$444\times$) the relative error is unchanged within $8\%$ at every
+$L$; on ERA5 temperature and SPX implied-volatility data the same
+uniformity holds, with the absolute rate set by the data's roughness
+and noise floor.
+\end{enumerate}
+
+\subsection{Roadmap}
+\label{sec:intro:roadmap}
+
+Section~\ref{sec:method} describes the mode-space architecture, the
+half-period basis, and the closed-form linear solve. Section
+\ref{sec:theorem} states and proves Theorem~\ref{thm:main}. Section
+\ref{sec:experiments} reports the empirical validation
+(\ref{sec:exp:dirichlet-plateau} the negative result;
+\ref{sec:exp:d-sweep} the uniform-in-$d$ verification). Section
+\ref{sec:discussion} discusses extensions to nonlinear SPDEs.
