@@ -69,7 +69,7 @@ def rel_err_at_coeffs(alpha, beta, oracle, N_t_eval=64):
     return math.sqrt(err_Y / ref_Y)   # 2026-07-17 fix: was returning the SQUARED relative error
 
 
-def train_lbfgs(d, L, seed):
+def train_lbfgs(d, L, seed, n_q=N_Q):
     oracle = ACOracleHalfPeriod(
         d=d, sigma=SIGMA, K_max=K_MAX, T=T, L_test=L,
         N_fine=N_FINE, N_x=N_X, seed=42 + seed,
@@ -82,7 +82,7 @@ def train_lbfgs(d, L, seed):
 
     def closure():
         opt.zero_grad()
-        loss = loss_rv_ac(model, oracle, N_q=N_Q, N_x=N_X)
+        loss = loss_rv_ac(model, oracle, N_q=n_q, N_x=N_X)
         loss.backward()
         return loss
 
@@ -103,9 +103,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--d", type=int, nargs="+", default=[2, 3, 4])
     ap.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2])
+    # time-quadrature points; default keeps the published N_q=16 runs reproducible.
+    # 2026-07-24: N_q=16 was shown to under-resolve the cubic projection at d=5
+    # (slope +0.015 -> -0.121 at N_q=32), so the d<=4 rates need rechecking too.
+    ap.add_argument("--nq", type=int, default=N_Q)
     args = ap.parse_args()
 
-    print(f"P7 Allen-Cahn L-BFGS d-sweep  K_max={K_MAX}  N_q={N_Q}  N_x={N_X}  "
+    print(f"P7 Allen-Cahn L-BFGS d-sweep  K_max={K_MAX}  N_q={args.nq}  N_x={N_X}  "
           f"outer={LBFGS_OUTER}x{LBFGS_MAXITER}  device={DEVICE}\n")
     print(f"{'d':>4} {'J':>6} {'L':>5} {'rel_err mean±std':>22} "
           f"{'loss(max)':>11} {'wall':>8}")
@@ -117,7 +121,7 @@ def main():
             re_seeds, lo_seeds = [], []
             t0 = time.time()
             for seed in args.seeds:
-                re, lo, _ = train_lbfgs(d, L, seed)
+                re, lo, _ = train_lbfgs(d, L, seed, n_q=args.nq)
                 re_seeds.append(re)
                 lo_seeds.append(lo)
                 if DEVICE == "cuda":
@@ -138,6 +142,8 @@ def main():
 
     tag = "full" if args.d == [2, 3, 4] and args.seeds == [0, 1, 2] else \
           f"d{''.join(map(str, args.d))}_s{''.join(map(str, args.seeds))}"
+    if args.nq != N_Q:
+        tag += f"_nq{args.nq}"  # never clobber the published N_q=16 artifacts
     out = os.path.join(os.path.dirname(__file__), "..", "results",
                        f"20_ac_lbfgs_sweep_{tag}.npz")
     np.savez(out, rows=arr)

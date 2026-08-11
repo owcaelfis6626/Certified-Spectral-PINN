@@ -63,36 +63,72 @@ rel\_err $> 1$ at $d = 4$. This is not gradient noise --- there is none
 anisotropic cross-mode Hessian as $J$ grows. Replacing Adam with L-BFGS
 (strong-Wolfe line search) restores convergence at every $d$.
 
+\paragraph{The cubic term must be dealiased in time, not only in space.}
+One discretisation point governs every number below and is easy to miss.
+The cubic projection $\mathrm{cubic}_k$ is dealiased in \emph{space} by
+the standard rule for a cubic nonlinearity ($N_x > 2 \cdot 3 \cdot
+K_{\max}$), but the same requirement applies in \emph{time}: the
+temporal quadrature integrates a degree-four product of the test
+functions $\psi_l$, whose highest frequency is $\propto L$, so it needs
+$N_q \gtrsim 2L$ nodes. Held at a fixed $N_q = 16$ the cubic term
+carries $\approx 270\%$ relative quadrature error by $L = 128$, and the
+error grows along precisely the axis a convergence study sweeps. A rate
+measured that way is a property of the quadrature, not of the method.
+
 \paragraph{Convergence under L-BFGS.}
 With L-BFGS the residual is driven to $\mathcal{L}_{\rm RV} \approx
 10^{-8}$ at all $d$, and the relative error decreases monotonically in
-$L$ (3 seeds, $K_{\max} = 3$):
+$L$. All cells are run at $N_q = 2L$, $N_x = 32$, $K_{\max} = 3$, 3
+seeds per $(d, L)$ (39 cells, 22.3 GPU-hours):
 
 \begin{center}
-\begin{tabular}{rrccc}
+\begin{tabular}{rrccccc}
 \toprule
-$d$ & $J$ & $L = 32$ & $L = 64$ & $L = 128$ \\
+$d$ & $J$ & $L = 32$ & $L = 64$ & $L = 128$ & $L = 256$ & slope \\
 \midrule
-2 & 14  & 0.313 & 0.237 & 0.190 \\
-3 & 61  & 0.373 & 0.320 & 0.274 \\
-4 & 212 & 0.513 & 0.482 & 0.459 \\
+2 & 14  & 0.298 & 0.208 & 0.160 & 0.117 & $-0.445 \pm 0.018$ \\
+3 & 61  & 0.324 & 0.228 & 0.159 & 0.118 & $-0.492 \pm 0.013$ \\
+4 & 212 & 0.385 & 0.270 & 0.186 & 0.133 & $-0.514 \pm 0.006$ \\
+5 & 671 & 0.476 & 0.333 & 0.233 & ---   & $-0.517 \pm 0.001$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\noindent with log-log slopes $-0.36, -0.22, -0.08$ at $d = 2, 3, 4$.
-Two points deserve emphasis. First, the certified residual is satisfied
-at every $d$ ($\mathcal{L}_{\rm RV} \approx 10^{-8}$), so the bound
-\eqref{eq:thm-bound} holds and the divergence above was an optimiser
-artifact, not a failure of the formulation. Second --- and unlike the
-\emph{linear} case, whose rate is uniform in $d$ --- the nonlinear rate
-\emph{degrades with $d$}. Since $\mathcal{L}_{\rm RV} \to 0$, this is not
-residual error but a growth of the best-approximation constant $C_2$ with
-$d$: at fixed $K_{\max}$ and $\sigma$, higher $d$ activates more modes,
-raising the total field variance $\sum_k S(k)$ and pushing the dynamics
-deeper into the nonlinear regime. Characterising this $d$-dependence
-(e.g.\ via a $\sigma$-rescaling that holds the field variance fixed) is
-the main open item for the nonlinear extension.
+\noindent (the $d = 5$ slope is fitted on three $L$ points; the others on
+four). Three points deserve emphasis. First, the certified residual is
+satisfied at every $d$ ($\mathcal{L}_{\rm RV} \approx 10^{-8}$), so the
+bound \eqref{eq:thm-bound} holds and the Adam divergence above was an
+optimiser artifact, not a failure of the formulation. Second, the
+\textbf{rate is uniform in $d$}: the slopes span $0.07$ and all four sit
+at the Karhunen--Lo\`eve floor $-\tfrac12$ that the linear theory
+predicts. The nonlinear case inherits the dimension-independence of the
+\emph{rate} that the certificate is designed to deliver. Third, what does
+depend on $d$ is the \emph{constant}. Writing $C_2^{\rm rel} =
+\mathrm{rel\_err}^2 \cdot L$ --- which is flat in $L$ exactly when the
+$L^{-1/2}$ rate is attained, and is so here to within $11\%$ --- gives
+$3.1, 3.4, 4.6, 7.1$ at $d = 2, 3, 4, 5$: a factor $2.3$ across three
+dimensions while the mode count $J$ grows by a factor $48$ ($14 \to
+671$). The nonlinear open problem is therefore located in the
+approximation constant, and it is a mild, strongly sub-$J$ dependence
+rather than a degradation of the rate.
+
+\begin{remark}[a silent failure mode of residual certificates]
+\label{rem:aliasing}
+The identical sweep run at a fixed $N_q = 16$ instead reports slopes
+$-0.36, -0.22, -0.08, +0.02$ at $d = 2, \dots, 5$: a spread of $0.38$,
+and at $d = 5$ no convergence in $L$ at all. That apparent ``the rate
+degrades with $d$'' pattern is entirely temporal aliasing --- it is
+largest exactly where the quadrature error is largest, at large $L$ and
+large $d$. We record it because the failure is \emph{silent} in a way
+that bears on the certificate itself: $\mathcal{L}_{\rm RV}$ is driven to
+$10^{-8}$ in both cases. Theorem~\ref{thm:main} bounds the error by the
+residual \emph{as discretised}; a mis-resolved quadrature makes that
+residual small without making the true residual small, and no amount of
+optimiser success reveals it. The certificate detects approximation
+failure, which is what \S\ref{sec:disc:limits} claims for it; it does not
+detect its own quadrature error, and that gap must be closed by
+discretisation analysis rather than by monitoring the loss.
+\end{remark}
 
 The certified bound for the nonlinear case would have an additional
 cubic-projection-error term, bounded by the MC sampling error of
@@ -128,12 +164,22 @@ it is optimal for the H\"older-$\tfrac12$ reference. The constant
 $C_2$ is currently calibrated, not derived from first principles. A
 rigorous derivation is open.
 \item \textbf{Nonlinear extension.} The lookup-table / FFT-cubic
-architecture, trained with L-BFGS, converges at $d = 2, 3, 4$ (rel\_err
-slopes $-0.36, -0.22, -0.08$; $\mathcal{L}_{\rm RV} \le 10^{-8}$
-throughout), so the certified residual is satisfied in the nonlinear
-case. The rate degrades with $d$ as the best-approximation constant
-grows; a full nonlinear bound must capture this $d$-dependence, the
-main open item.
+architecture, trained with L-BFGS, converges at $d = 2, \dots, 5$ at the
+KL rate (rel\_err slopes $-0.445, -0.492, -0.514, -0.517$;
+$\mathcal{L}_{\rm RV} \le 10^{-8}$ throughout), so the certified residual
+is satisfied and the rate is uniform in $d$ in the nonlinear case as
+well. What grows with $d$ is the approximation constant
+($C_2^{\rm rel} = 3.1 \to 7.1$ from $d = 2$ to $d = 5$, against a
+$48\times$ growth in $J$); deriving that dependence, and extending the
+bound with the cubic-projection-error term, is the main open item.
+\item \textbf{Quadrature error is outside the certificate.}
+Theorem~\ref{thm:main} controls the error by the residual as
+discretised. Remark~\ref{rem:aliasing} exhibits a case where an
+under-resolved temporal quadrature drives $\mathcal{L}_{\rm RV}$ to
+$10^{-8}$ while the measured convergence rate is an artifact. The
+temporal dealiasing requirement $N_q \gtrsim 2L$ closes it for the cubic
+nonlinearity here; a general residual-quadrature bound, composable with
+\eqref{eq:thm-bound}, is open.
 \item \textbf{High-dimensional spatial transfer.} The architecture
 scales polynomially with $d$ (through $J = |\mathcal{H}_{K_{\max}}|$),
 not exponentially. The d-sweep verifies this up to $d = 7$ at

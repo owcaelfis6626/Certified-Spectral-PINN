@@ -19,6 +19,21 @@ Cubic projection [u_θ³]^a_k via FFT on an N_x^d spatial grid:
 
 Requires N_x > 2 * 3 * K_max to avoid aliasing from the cubic.
 With K_max=3: N_x ≥ 19; we use N_x=32 for all d.
+
+The SAME dealiasing argument applies in TIME and was originally missed: the
+quadrature evaluates u at N_q Gauss-Legendre nodes, cubes it pointwise, and
+projects onto L half-period sine modes, so the temporal grid must resolve the
+tripled bandwidth too. Measured directly in `26_cubic_quadrature_error.py`
+(L=128, relative error of this cubic tensor vs a high-N_q reference):
+
+    N_q= 16 -> 2.70      N_q=128 (=L)  -> 8.7e-3
+    N_q= 32 -> 1.78      N_q=256 (=2L) -> 6.4e-6  (fp32 floor)
+
+i.e. N_q must scale as ~2L, and the historical fixed N_q=16 made the cubic
+term wrong by more than the term itself at large L -- worsening along exactly
+the axis the L-convergence study sweeps. `_warn_temporal_aliasing` below makes
+this loud instead of silent; it warns rather than asserts so the published
+N_q=16 numbers stay reproducible.
 """
 
 import math
@@ -65,8 +80,27 @@ def gauss_legendre_01(N_q, device, dtype):
     return t, w
 
 
+_ALIAS_WARNED = set()
+
+
+def _warn_temporal_aliasing(N_q, L):
+    """Cubic dealiasing in time needs N_q ~ 2L (see module docstring). Warn once
+    per (N_q, L) so a sweep does not spam, but never stay silent about it."""
+    if N_q >= 2 * L or (N_q, L) in _ALIAS_WARNED:
+        return
+    _ALIAS_WARNED.add((N_q, L))
+    import warnings
+    warnings.warn(
+        f"temporal aliasing: N_q={N_q} < 2*L={2 * L} for the cubic term; "
+        f"the cubic residual is under-resolved (at L=128, N_q=16 gives ~270% "
+        f"relative error -- see 26_cubic_quadrature_error.py). Convergence "
+        f"rates measured by sweeping L at fixed N_q are not trustworthy.",
+        RuntimeWarning, stacklevel=2)
+
+
 def loss_rv_ac(model, oracle, N_q: int = 16, N_x: int = 32):
     """RVPINN loss for Allen-Cahn."""
+    _warn_temporal_aliasing(N_q, oracle.L_test)
     device, dtype = oracle.device, oracle.dtype
     T, sigma = oracle.T, oracle.sigma
     J, L = oracle.J, oracle.L_test
