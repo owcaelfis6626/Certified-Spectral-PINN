@@ -79,23 +79,23 @@ measured that way is a property of the quadrature, not of the method.
 With L-BFGS the residual is driven to $\mathcal{L}_{\rm RV} \approx
 10^{-8}$ at all $d$, and the relative error decreases monotonically in
 $L$. All cells are run at $N_q = 2L$, $N_x = 32$, $K_{\max} = 3$, 3
-seeds per $(d, L)$ (39 cells, 22.3 GPU-hours):
+seeds per $(d, L)$ at $L \le 128$ and a single seed at $L = 256$
+(40 cells, 29.6 GPU-hours):
 
 \begin{center}
 \begin{tabular}{rrccccc}
 \toprule
 $d$ & $J$ & $L = 32$ & $L = 64$ & $L = 128$ & $L = 256$ & slope \\
 \midrule
-2 & 14  & 0.298 & 0.208 & 0.160 & 0.117 & $-0.445 \pm 0.018$ \\
+2 & 14  & 0.298 & 0.208 & 0.159 & 0.117 & $-0.445 \pm 0.018$ \\
 3 & 61  & 0.324 & 0.228 & 0.159 & 0.118 & $-0.492 \pm 0.013$ \\
 4 & 212 & 0.385 & 0.270 & 0.186 & 0.133 & $-0.514 \pm 0.006$ \\
-5 & 671 & 0.476 & 0.333 & 0.233 & ---   & $-0.517 \pm 0.001$ \\
+5 & 671 & 0.476 & 0.333 & 0.232 & 0.165 & $-0.511 \pm 0.003$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\noindent (the $d = 5$ slope is fitted on three $L$ points; the others on
-four). Three points deserve emphasis. First, the certified residual is
+\noindent Three points deserve emphasis. First, the certified residual is
 satisfied at every $d$ ($\mathcal{L}_{\rm RV} \approx 10^{-8}$), so the
 bound \eqref{eq:thm-bound} holds and the Adam divergence above was an
 optimiser artifact, not a failure of the formulation. Second, the
@@ -105,7 +105,7 @@ predicts. The nonlinear case inherits the dimension-independence of the
 \emph{rate} that the certificate is designed to deliver. Third, what does
 depend on $d$ is the \emph{constant}. Writing $C_2^{\rm rel} =
 \mathrm{rel\_err}^2 \cdot L$ --- which is flat in $L$ exactly when the
-$L^{-1/2}$ rate is attained, and is so here to within $11\%$ --- gives
+$L^{-1/2}$ rate is attained, and is so here to within $13\%$ --- gives
 $3.1, 3.4, 4.6, 7.1$ at $d = 2, 3, 4, 5$: a factor $2.3$ across three
 dimensions while the mode count $J$ grows by a factor $48$ ($14 \to
 671$). The nonlinear open problem is therefore located in the
@@ -165,7 +165,7 @@ $C_2$ is currently calibrated, not derived from first principles. A
 rigorous derivation is open.
 \item \textbf{Nonlinear extension.} The lookup-table / FFT-cubic
 architecture, trained with L-BFGS, converges at $d = 2, \dots, 5$ at the
-KL rate (rel\_err slopes $-0.445, -0.492, -0.514, -0.517$;
+KL rate (rel\_err slopes $-0.445, -0.492, -0.514, -0.511$;
 $\mathcal{L}_{\rm RV} \le 10^{-8}$ throughout), so the certified residual
 is satisfied and the rate is uniform in $d$ in the nonlinear case as
 well. What grows with $d$ is the approximation constant
