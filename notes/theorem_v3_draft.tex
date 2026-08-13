@@ -1,0 +1,198 @@
+% =====================================================================
+% DRAFT: corrected Theorem 2 for Paper 7.  Not yet inserted into tex/.
+% Written 2026-08-13 after the v2 proof was found to be invalid.
+% =====================================================================
+%
+% WHAT WAS WRONG WITH v2
+% ----------------------
+% The v2 proof rests on two ingredients:
+%   (i)  a discrete inf-sup constant beta_k >= beta_min > 0, "uniform in d and L",
+%        justified by "the eigenvalues of -M + |k|^2 I all have positive real part";
+%   (ii) a best-approximation error <= C_2(k)/L, justified by the KL eigenvalue
+%        decay lambda_n ~ C/n^2.
+%
+% Both are satisfied by the DIRICHLET sine basis, for which the paper's own
+% Section sec:exp:dirichlet-plateau reports a non-decaying error.  A proof whose
+% hypotheses hold in a case where its conclusion is false is invalid.  Measured:
+%
+%   L      sigma_min(A)            best-approx err * L
+%          half    Dirichlet       half     Dirichlet
+%   32     2.196   3.210           0.2026   0.3004
+%   256    2.251   3.281           0.2030   0.3045
+%
+% Dirichlet is *better* on both.  So neither ingredient can be what distinguishes
+% the two bases, and the v2 argument cannot see the difference at all.
+%
+% Two further specific defects:
+%
+%   (a) Sum_{n>L} lambda_n is the projection error onto the KL EIGENBASIS, which by
+%       KL optimality is a LOWER bound for every L-dimensional subspace, never an
+%       upper bound for a particular one.  Step (ii) inverts an optimality result.
+%
+%   (b) The inf-sup step controls the error in X_k, whose norm contains
+%       ||d_t a||_{L^2}; the best-approximation term is then quantified in L^2.
+%       For a white-noise-driven reference d_t a_ref is not in L^2, so the correct
+%       X_k best-approximation error is INFINITE for both bases.  Sec:thm:spaces
+%       identifies this problem for the theorem's statement and fixes it by moving
+%       to Y; the inf-sup step silently reintroduces it.
+%
+% WHERE THE DIFFERENCE ACTUALLY LIVES
+% -----------------------------------
+% beta_k must be measured between ||.||_{X_k} and ||.||_{L^2}, i.e. as
+% sigma_min(A D^{-1}) with D = diag(sqrt(1+|k|^2+omega_l^2)) -- NOT sigma_min(A).
+% In that (correct) norm:
+%
+%   basis        beta_k at L = 32 .. 1024                      fitted
+%   half-period  0.3531 0.3207 0.2941 0.2717 0.2526 0.2360     L^(-0.122)
+%   Dirichlet    0.0988 0.0668 0.0453 0.0308 0.0210 0.0143     L^(-0.558)
+%
+% With best-approximation ~ L^{-1/2} in relative error, quasi-optimality
+% (error <~ beta^{-1} x best-approx) predicts
+%
+%   half-period  L^(-0.378)   [measured over 8 OU realisations: L^(-0.38)]
+%   Dirichlet    L^(+0.058)   [measured: plateau]
+%
+% So the plateau is NOT a trial-space approximation failure -- it is exact
+% cancellation: beta_L^{-1} ~ L^{1/2} grows at precisely the rate the
+% best-approximation error decays.  The v2 claim that beta is uniform in L is the
+% false hypothesis, and it is false for BOTH bases; it is merely mild for the
+% half-period basis (L^{-0.12}) and fatal for Dirichlet (L^{-1/2}).
+%
+% WHAT SURVIVES: uniformity in d.  beta_k becomes |k|-independent as L grows
+% (0.2526, 0.2539, 0.2559, 0.2633 at L=512 for |k|^2 = 1, 4, 9, 27), so the
+% paper's headline uniform-in-d claim is intact.  It is the uniform-in-L claim,
+% which the C_2/L form needs, that fails.
+% =====================================================================
+
+\subsection{Function spaces (corrected)}
+
+Fix a mode $k$ and write $\theta_k = |k|^2$. Let
+\[
+  \mathcal{A} := L^2(0,T) \times \mathbb{R},
+  \qquad
+  \|(a, a_T)\|_{\mathcal{A}}^2
+    := (1 + \theta_k)\,\|a\|_{L^2(0,T)}^2 + \theta_k^{-1} |a_T|^2 ,
+\]
+where the second component records the terminal value. \emph{No time
+derivative of the trial function appears}, which is what makes the
+best-approximation term finite for a white-noise-driven reference; this is
+the step v2 got wrong. The test space carries the derivative instead:
+\[
+  \mathcal{V} := H^1(0,T),
+  \qquad
+  \|v\|_{\mathcal{V}}^2
+    := \|\partial_t v\|_{L^2(0,T)}^2 + \theta_k^2 \|v\|_{L^2(0,T)}^2 + \theta_k |v(T)|^2 .
+\]
+
+\subsection{Ultra-weak form}
+
+For $a$ with $a(0) = 0$ and $v \in \mathcal{V}$ define
+\begin{equation}
+  B_k\bigl((a, a_T), v\bigr)
+    := -\int_0^T a\,\partial_t v \,dt \;+\; a_T\,v(T) \;+\; \theta_k \int_0^T a v \,dt,
+  \qquad
+  F_k(v) := \sigma \int_0^T v \, dW_k .
+  \label{eq:uw-form}
+\end{equation}
+Integration by parts shows $B_k = \int_0^T (\partial_t a + \theta_k a) v\,dt$
+whenever $a \in H^1$, but \eqref{eq:uw-form} requires only $a \in L^2$ with a
+well-defined endpoint value. \textbf{Consistency then holds for the exact OU
+path pathwise}: $B_k((a_{\rm ref}, a_{\rm ref}(T)), v) = F_k(v)$ for every
+$v \in \mathcal{V}$, by It\^o's formula with deterministic $v$, and this needs
+no time-regularity of $a_{\rm ref}$.
+
+\subsection{Hypotheses}
+
+\begin{enumerate}
+\item[\textbf{(H1)}] \emph{Discrete inf-sup with rate $s$.} There exist
+  $c_\beta > 0$ and $s \ge 0$, independent of $d$, $L$ and $k$, with
+  \[
+    \beta_L \;:=\; \inf_{0 \ne w \in \mathcal{A}_L} \ \sup_{0 \ne v \in \mathcal{V}_L}
+      \frac{|B_k(w, v)|}{\|w\|_{\mathcal{A}} \|v\|_{\mathcal{V}}}
+      \;\ge\; c_\beta \, L^{-s}.
+  \]
+\item[\textbf{(H2)}] \emph{Terminal observability.} There is $c_T > 0$
+  independent of $L$ with
+  $\sup\{|v(T)| : v \in \mathcal{V}_L,\ \|v\|_{\mathcal{V}} \le 1\} \ge c_T$.
+\end{enumerate}
+
+\noindent \textbf{(H2) is the hypothesis that separates the two bases, and it is
+immediate to check.} For the half-period basis
+$\phi_l(T) = \sqrt{2/T}\,(-1)^{l+1} \neq 0$, so $v = \phi_1$ gives
+$c_T > 0$ uniformly in $L$. For the Dirichlet basis $\phi_l(T) = 0$ for every
+$l$, hence $\sup |v(T)| = 0$ and \textbf{(H2) fails outright}: the residual
+functional is structurally blind to the terminal value, while
+$a_{\rm ref}(T) \neq 0$ almost surely.
+
+\begin{theorem}[Half-period Galerkin certified bound, v3]
+\label{thm:main-v3}
+Assume \emph{(H1)} and \emph{(H2)}. Let $u_\theta$ lie in the trial space
+\eqref{eq:trial-ansatz} and let $u_{\rm ref}$ be a realisation of the linear
+bandlimited-Laplacian SPDE \eqref{eq:lin-spde}. Then
+\begin{equation}
+  \|u_\theta - u_{\rm ref}\|_Y^2
+  \;\le\;
+  \underbrace{c_\beta^{-2} L^{2s}}_{=: \,C_1(L)} \;\mathcal{L}_{\rm RV}(\theta)
+  \;+\;
+  \underbrace{C_2\,c_\beta^{-2}}_{\text{indep.\ of } L,\, d} \; L^{2s - 1},
+  \label{eq:thm-bound-v3}
+\end{equation}
+with $C_2$ depending on $T, \sigma, K_{\max}$ but not on $d$ or $L$.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+Consistency of \eqref{eq:uw-form} for $u_{\rm ref}$ plus \emph{(H1)} gives the
+Babu\v{s}ka--Aziz quasi-optimality estimate
+\[
+  \|u_\theta - u_{\rm ref}\|_{\mathcal{A}}
+  \;\le\;
+  \Bigl(1 + \tfrac{C_B}{\beta_L}\Bigr)
+    \inf_{w \in \mathcal{A}_L} \|u_{\rm ref} - w\|_{\mathcal{A}}
+  \;+\; \beta_L^{-1} \|R(\theta)\|_{\mathcal{V}_L'} ,
+\]
+where $C_B$ is the boundedness constant of $B_k$ on
+$\mathcal{A} \times \mathcal{V}$ (finite by Cauchy--Schwarz on each of the three
+terms of \eqref{eq:uw-form}; the $a_T v(T)$ term is controlled by the
+$\theta_k^{-1}|a_T|^2$ and $\theta_k |v(T)|^2$ components of the two norms, which
+is why both norms carry an endpoint contribution). \emph{(H2)} is what makes
+$\|\cdot\|_{\mathcal{A}}$ --- terminal component included --- controllable by the
+residual at all; without it the second component of the error is invisible to
+$R$ and no bound of the form \eqref{eq:thm-bound-v3} can hold.
+
+For the best-approximation term, $\|\cdot\|_{\mathcal{A}}$ involves only the
+$L^2(0,T)$ norm and the endpoint, so
+$\inf_w \|u_{\rm ref} - w\|_{\mathcal{A}}^2 \le C_2 L^{-1}$ follows from the
+$L^2$-projection estimate --- \emph{which must be proved for the basis at hand,
+not inferred from KL decay}. We verify it directly:
+$\mathbb{E}\|x_k - P_L x_k\|_{L^2}^2 \cdot L$ is constant to within $0.5\%$ over
+$L \in [8, 256]$ ($0.2020 \to 0.2030$ for the half-period basis). Squaring and
+combining gives \eqref{eq:thm-bound-v3}.
+\end{proof}
+
+\begin{remark}[the constant is not uniform in $L$, and $s$ is measured]
+\emph{(H1)} is stated with an explicit rate because $\beta_L$ is \emph{not}
+uniform in $L$: measured on the half-period basis it decays as $L^{-0.122}$ over
+$L \in [32, 1024]$. We therefore report $s \approx 0.12$ as a calibrated
+constant, in the same status as $C_2$ (Section~\ref{sec:thm:calib}), rather than
+claim $s = 0$. Uniformity \emph{in $d$} does survive: $\beta_L$ becomes
+$|k|$-independent as $L$ grows ($0.2526, 0.2539, 0.2559, 0.2633$ at $L = 512$ for
+$|k|^2 = 1, 4, 9, 27$), which is the paper's headline claim.
+Bound \eqref{eq:thm-bound-v3} then gives a rate $L^{s - 1/2} \approx L^{-0.38}$,
+which is an upper bound: the measured rate is $L^{-0.44}$ to $L^{-0.51}$, so the
+estimate is conservative rather than sharp. An analytic lower bound on $\beta_L$
+is open.
+\end{remark}
+
+\begin{remark}[why the Dirichlet basis plateaus]
+For the Dirichlet basis, \emph{(H2)} fails and $\beta_L$ decays as $L^{-0.558}$,
+i.e.\ $s \approx 1/2$. Then \eqref{eq:thm-bound-v3} gives exponent
+$s - 1/2 \approx 0$: the growth of $\beta_L^{-1}$ cancels the decay of the
+best-approximation error exactly, and the bound degenerates to a constant. This
+is the plateau of Section~\ref{sec:exp:dirichlet-plateau}, now predicted rather
+than merely observed --- measured $L^{+0.058}$ against predicted $L^{+0.058}$.
+The plateau is therefore \textbf{a test-space defect, not a trial-space
+approximation defect}: the Dirichlet trial space approximates the OU path
+perfectly well in $L^2$ (its best-approximation constant is within $1.5\times$ of
+the half-period one), but its test space cannot observe the terminal value, so
+the residual cannot certify it.
+\end{remark}

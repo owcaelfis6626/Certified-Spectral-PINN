@@ -106,6 +106,43 @@ $C_2 = \pi^d \sum_{k} (1 + |k|^2)\,C_2(k)$, uniform in $d$ for
 $|k| \le K_{\max}$ fixed.
 \end{proof}
 
+\begin{remark}[a defect in the proof above, and what it does not affect]
+\label{rem:infsup-defect}
+The proof sketch is \textbf{not valid as written}, and we flag it here rather
+than leave it to a reader. Both of its ingredients --- the uniform discrete
+inf-sup and the $O(L^{-1})$ best-approximation --- are satisfied by the
+\emph{Dirichlet} sine basis, for which
+Section~\ref{sec:exp:dirichlet-plateau} reports a non-decaying error. An
+argument whose hypotheses hold in a case where its conclusion fails cannot be
+establishing the conclusion.
+
+Two things are measured rather than argued. First, the relevant inf-sup is
+$\beta_L = \sigma_{\min}(A D^{-1})$ with
+$D = \mathrm{diag}\bigl(\sqrt{1 + |k|^2 + \omega_l^2}\bigr)$, since
+$\|\cdot\|_{X_k}$ is a weighted norm; in that norm $\beta_L$ is \emph{not}
+uniform in $L$, decaying as $L^{-0.122}$ for the half-period basis and
+$L^{-0.558}$ for the Dirichlet basis over $L \in [32, 1024]$. Second, the
+quasi-optimality estimate $\|\text{error}\| \lesssim \beta_L^{-1} \times$
+(best approximation) then predicts rates $L^{-0.378}$ and $L^{+0.058}$
+respectively, against measured $L^{-0.38}$ and a plateau (8 OU realisations).
+The Dirichlet plateau is therefore an exact cancellation --- $\beta_L^{-1}$
+grows at precisely the rate the best-approximation error decays --- and it is a
+\textbf{test-space} defect, not a trial-space one: the Dirichlet trial space
+approximates the OU path in $L^2$ to within $1.5\times$ of the half-period
+constant, but its test functions satisfy $\phi_l(T) = 0$, so the residual is
+structurally blind to the terminal value while $a_{\rm ref}(T) \neq 0$ almost
+surely.
+
+\textbf{What survives.} Uniformity in $d$ --- the paper's headline claim --- is
+unaffected: $\beta_L$ becomes $|k|$-independent as $L$ grows ($0.2526$,
+$0.2539$, $0.2559$, $0.2633$ at $L = 512$ for $|k|^2 = 1, 4, 9, 27$). It is
+uniformity in $L$, which the $C_2/L$ form of \eqref{eq:thm-bound} requires,
+that fails. A corrected statement --- ultra-weak in time, so no time-regularity
+of the reference is demanded, with an explicit rate $\beta_L \ge c_\beta L^{-s}$
+and a terminal-observability hypothesis that the two bases separate on --- is
+drafted but not adopted here pending review.
+\end{remark}
+
 \begin{remark}[Comparison to v1, v2]
 The certified bound in this paper differs from prior attempts in two
 material ways. First, the norm $Y$ drops the $H^1$-in-time component

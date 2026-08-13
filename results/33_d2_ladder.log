@@ -1,0 +1,10 @@
+d=2 ladder (J=14), N_q=2L, 5000 Adam steps, seeds [0, 1, 2]
+reference: d=4 L=64 has J*L=13,568 and 14.7% seed spread
+
+[09:59:37]   launch L=256 seed=0 (J*L=3,584)
+[09:59:37]   launch L=256 seed=1 (J*L=3,584)
+[09:59:37]   launch L=256 seed=2 (J*L=3,584)
+[15:12:42] d=2 L=256  J*L=3,584  0.2645 +- 0.0275  (10.4% spread)  peak=0.1GB  seeds [0.2259, 0.2878, 0.2797]
+[15:12:42]   launch L=512 seed=0 (J*L=7,168)
+[15:12:42]   launch L=512 seed=1 (J*L=7,168)
+[15:12:42]   launch L=512 seed=2 (J*L=7,168)

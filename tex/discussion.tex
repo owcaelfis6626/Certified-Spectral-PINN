@@ -72,9 +72,16 @@ $d$ ($J$) & Adam slope & L-BFGS slope & seed spread at $L = 128$ \\
 \end{tabular}
 \end{center}
 
-\noindent Adam converges at $d = 2$ and $d = 3$ at a rate that degrades
-with $d$; at $d = 2$, $L = 32$ and $d = 4$, $L = 32$ it reproduces the
-L-BFGS answer to three and five decimals respectively. At $d = 4$ the
+\noindent Over the range swept above, Adam converges at $d = 2$ and
+$d = 3$ at a rate that degrades with $d$; at $d = 2$, $L = 32$ and
+$d = 4$, $L = 32$ it reproduces the L-BFGS answer to three and five
+decimals respectively. That agreement does \emph{not} extend to larger
+$L$: continuing the $d = 2$ ladder one step further, to $L = 256$, Adam
+returns $0.2645 \pm 0.0275$ against L-BFGS's $0.117$ --- a factor $2.26$,
+and \emph{worse than its own $L = 128$ value} of $0.1545$. So the
+failure is not dimensional. It occurs at $d = 2$, the dimension in which
+Adam is otherwise indistinguishable from L-BFGS, once $L$ is large
+enough. At $d = 4$ the
 three seeds at $L = 128$ return $0.205$, $0.357$ and $0.671$, and
 bootstrapping the fit over seed resampling gives slope $+0.018$ with
 $95\%$ CI $[-0.454, +0.400]$ --- \textbf{we cannot determine the sign},
