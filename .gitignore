@@ -1,6 +1,12 @@
 # LaTeX build artifacts
 *.aux
 *.log
+# ...but NOT the experiment logs. Every number in this paper should be traceable to the
+# run that produced it; the Adam paragraph was rewritten in Aug 2026 precisely because its
+# figures could not be reproduced from any tracked artifact (16_ac_sweep.log predated the
+# sqrt fix and was never regenerated, so the published slopes were hand-halved with nothing
+# on record saying so).
+!results/*.log
 *.out
 *.bbl
 *.blg

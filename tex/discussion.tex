@@ -55,13 +55,56 @@ the FFT cubic projection, and the Galerkin matrix $M$ and Wiener
 integrals $I_{k, l}$ are all fixed at oracle construction. Training is
 therefore full-batch minimisation of a smooth (degree-six) polynomial in
 the coefficients, with no stochastic-gradient noise. A first-order method
-(Adam, 5000 steps, cosine LR $10^{-2} \to 10^{-4}$) converges at $d = 2$
-but \emph{diverges} for $d \ge 3$: the fitted rel\_err slope vs $L$ is
-$+0.45$ at $d = 3$ ($J = 61$) and $+0.64$ at $d = 4$ ($J = 212$), with
-rel\_err $> 1$ at $d = 4$. This is not gradient noise --- there is none
---- but Adam's diagonal preconditioner failing on the increasingly
-anisotropic cross-mode Hessian as $J$ grows. Replacing Adam with L-BFGS
-(strong-Wolfe line search) restores convergence at every $d$.
+(Adam, 5000 steps, cosine LR $10^{-2} \to 10^{-4}$) nonetheless degrades
+as $d$ grows, and does so in a specific way: not by diverging, but by
+becoming dependent on its initialisation. Run at the dealiased $N_q = 2L$,
+3 seeds per cell, the fitted rel\_err slope vs $L$ is
+
+\begin{center}\small
+\begin{tabular}{rccc}
+\toprule
+$d$ ($J$) & Adam slope & L-BFGS slope & seed spread at $L = 128$ \\
+\midrule
+2 (14)  & $-0.475 \pm 0.025$ & $-0.445$ & $9.2\%$ \\
+3 (61)  & $-0.381 \pm 0.058$ & $-0.492$ & $8.1\%$ \\
+4 (212) & \emph{sign unresolved} & $-0.514$ & $\mathbf{47.2\%}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Adam converges at $d = 2$ and $d = 3$ at a rate that degrades
+with $d$; at $d = 2$, $L = 32$ and $d = 4$, $L = 32$ it reproduces the
+L-BFGS answer to three and five decimals respectively. At $d = 4$ the
+three seeds at $L = 128$ return $0.205$, $0.357$ and $0.671$, and
+bootstrapping the fit over seed resampling gives slope $+0.018$ with
+$95\%$ CI $[-0.454, +0.400]$ --- \textbf{we cannot determine the sign},
+and quoting a point estimate here would misrepresent a cell whose
+seed spread is $47\%$ as a rate.
+
+What the data does establish is that the instability is \emph{not}
+governed by the mode count alone. At fixed $J = 212$ the seed spread runs
+$0.9\%$, $14.7\%$, $47.2\%$ at $L = 32, 64, 128$, so a mechanism indexed
+by $J$ cannot account for it; but the coefficient-table size $J \cdot L$
+does not order the spread either ($d = 4$, $L = 32$ has $6\,784$
+parameters and $0.9\%$ spread, against $8.6\%$ for the $448$ parameters of
+$d = 2$, $L = 32$). We therefore report the phenomenon and leave its
+mechanism open rather than assign it to $J$. Replacing Adam with L-BFGS
+(strong-Wolfe line search) restores stable convergence at every $d$, which
+is the practical recommendation regardless of which variable indexes the
+failure.
+
+\begin{remark}[what this paragraph used to say]
+An earlier version of this work reported that Adam \emph{diverges} for
+$d \ge 3$, with slopes $+0.45$ and $+0.64$ at $d = 3, 4$ and
+rel\_err $> 1$ at $d = 4$. Those runs were made at a fixed $N_q = 16$.
+Re-run at $N_q = 2L$ no dealiased cell exceeds $0.7$, the $d = 3$ slope
+reverses to $-0.381$, and the $53\%$ seed spread that looked like
+optimiser chaos at $d = 3$, $L = 64$ falls to $3\%$. The reported
+divergence was the temporal aliasing of
+Remark~\ref{rem:aliasing}, measured in the one place we had not applied
+our own correction --- an instance of the silent failure that remark
+describes, found in this paper.
+\end{remark}
 
 \paragraph{The cubic term must be dealiased in time, not only in space.}
 One discretisation point governs every number below and is easy to miss.
@@ -97,8 +140,8 @@ $d$ & $J$ & $L = 32$ & $L = 64$ & $L = 128$ & $L = 256$ & slope \\
 
 \noindent Three points deserve emphasis. First, the certified residual is
 satisfied at every $d$ ($\mathcal{L}_{\rm RV} \approx 10^{-8}$), so the
-bound \eqref{eq:thm-bound} holds and the Adam divergence above was an
-optimiser artifact, not a failure of the formulation. Second, the
+bound \eqref{eq:thm-bound} holds and Adam's instability above is an
+optimiser property, not a failure of the formulation. Second, the
 \textbf{rate is uniform in $d$}: the slopes span $0.07$ and all four sit
 at the Karhunen--Lo\`eve floor $-\tfrac12$ that the linear theory
 predicts. The nonlinear case inherits the dimension-independence of the

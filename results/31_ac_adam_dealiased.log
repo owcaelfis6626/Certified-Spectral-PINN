@@ -1,0 +1,10 @@
+P7 Allen-Cahn Adam sweep, DEALIASED  K_max=3  N_q=2L  N_x=32  N_steps=5000  device=cuda
+  (16_ac_sweep ran this at a fixed N_q=16; every other difference is held)
+
+   d      J     L   N_q       rel_err mean±std      wall
+   2     14    32    64  0.2982 ± 0.0257    1454.4s
+   2     14    64   128  0.2083 ± 0.0050    2912.7s
+   2     14   128   256  0.1545 ± 0.0142    8711.8s
+   3     61    32    64  0.3248 ± 0.0060    1437.8s
+   3     61    64   128  0.2328 ± 0.0074    3143.0s
+   3     61   128   256  0.1916 ± 0.0156   10388.2s

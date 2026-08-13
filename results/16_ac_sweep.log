@@ -1,0 +1,19 @@
+P7 Allen-Cahn d-sweep  K_max=3  N_q=16  N_x=32  N_steps=5000
+
+   d      J     L       rel_err mean±std     wall
+   2     14    32  0.0945 ± 0.0096    329.6s
+   2     14    64  0.0534 ± 0.0046    331.4s
+   2     14   128  0.0353 ± 0.0036    308.5s
+   3     61    32  0.1326 ± 0.0017    313.3s
+   3     61    64  0.3133 ± 0.1650    312.8s
+   3     61   128  0.4594 ± 0.1007    313.2s
+   4    212    32  0.2610 ± 0.0020   1939.8s
+   4    212    64  1.0145 ± 0.0419   2080.5s
+   4    212   128  1.5657 ± 0.0353   2089.5s
+
+=== Slope check per d ===
+  d=2: rel_err ~ L^(-0.710)
+  d=3: rel_err ~ L^(0.896)
+  d=4: rel_err ~ L^(1.292)
+
+saved: /home/hubi/research/useful/papers/paper7_certified_spectral_pinn/src/../results/16_ac_sweep.npz

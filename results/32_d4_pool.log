@@ -1,0 +1,31 @@
+[23:18:30] d=3 banked (6 rows); stopping the sequential sweep before it starts d=4
+[23:18:36] d=4 pool: 9 jobs, budget 13.5 GB, max 3 workers
+[23:18:36]   launch L=128 seed=0 (~7.4 GB, 7.4 GB in flight)
+[23:18:36]   launch L=64 seed=0 (~4.2 GB, 11.6 GB in flight)
+[23:43:16]   done  L=64 seed=0  rel_err=0.3080  peak=1.1GB  (0.41 h)
+[23:43:16]   launch L=64 seed=1 (~4.2 GB, 11.6 GB in flight)
+[00:08:16]   done  L=64 seed=1  rel_err=0.3822  peak=1.1GB  (0.42 h)
+[00:08:16]   launch L=64 seed=2 (~4.2 GB, 11.6 GB in flight)
+[00:22:16]   done  L=128 seed=0  rel_err=0.3568  peak=2.1GB  (1.06 h)
+[00:22:16]   launch L=128 seed=1 (~7.4 GB, 11.6 GB in flight)
+[00:32:16]   done  L=64 seed=2  rel_err=0.2686  peak=1.1GB  (0.40 h)
+[00:32:16]   launch L=32 seed=0 (~2.6 GB, 10.0 GB in flight)
+[00:32:16]   launch L=32 seed=1 (~2.6 GB, 12.6 GB in flight)
+[00:46:57]   done  L=32 seed=1  rel_err=0.3899  peak=0.6GB  (0.24 h)
+[00:46:57]   launch L=32 seed=2 (~2.6 GB, 12.6 GB in flight)
+[00:47:17]   done  L=32 seed=0  rel_err=0.3826  peak=0.6GB  (0.25 h)
+[00:59:37]   done  L=32 seed=2  rel_err=0.3825  peak=0.6GB  (0.21 h)
+[01:22:57]   done  L=128 seed=1  rel_err=0.2051  peak=2.1GB  (1.01 h)
+[01:22:57]   launch L=128 seed=2 (~7.4 GB, 7.4 GB in flight)
+[02:15:37]   done  L=128 seed=2  rel_err=0.6705  peak=2.1GB  (0.88 h)
+d=4 L=32 N_q=64  0.3850 +- 0.0035
+d=4 L=64 N_q=128  0.3196 +- 0.0471
+d=4 L=128 N_q=256  0.4108 +- 0.1938
+
+=== rate  rel_err ~ L^s  (Adam, dealiased, N_q = 2L) ===
+  paper's aliased+hand-halved: d=3 +0.45, d=4 +0.64
+  d=2: L=32:0.2982  L=64:0.2083  L=128:0.1545   slope -0.475 +/- 0.025
+  d=3: L=32:0.3248  L=64:0.2328  L=128:0.1916   slope -0.381 +/- 0.058
+  d=4: L=32:0.3850  L=64:0.3196  L=128:0.4108   slope +0.047 +/- 0.182
+
+saved: /home/hubi/research/useful/papers/paper7_certified_spectral_pinn/src/../results/31_ac_adam_dealiased.npz
