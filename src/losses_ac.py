@@ -98,7 +98,58 @@ def _warn_temporal_aliasing(N_q, L):
         RuntimeWarning, stacklevel=2)
 
 
-def loss_rv_ac(model, oracle, N_q: int = 16, N_x: int = 32):
+def cubic_proj_fft_batched(a, b, modes_int, N_x, device, dtype):
+    """cubic_proj_fft over a leading quadrature axis: (Q, J) in, (Q, J) out.
+
+    Mathematically identical to looping cubic_proj_fft over q -- every operation is
+    elementwise or an FFT over the trailing d axes, so a batch axis passes straight
+    through. The point is dispatch cost, not arithmetic: the per-q loop issues ~15 tiny
+    kernels per quadrature node, 5000 times per training run, which leaves the GPU idle
+    ~89% of the time (measured: modal 1-2% utilisation, 38 W of a ~300 W card).
+
+    Two differences from the unbatched function, both deliberate:
+      * the complex dtype is DERIVED from `dtype` rather than pinned to complex64, so an
+        fp64 run is actually fp64. The fp32 path is unchanged (float32 -> complex64).
+      * results are summed by matmul rather than sequential accumulation, so in float32
+        the last bits differ from the loop by summation order. In float64 the two agree
+        to ~1e-15; see 35_batching_equivalence_gate.py.
+    """
+    cdtype = torch.complex128 if dtype == torch.float64 else torch.complex64
+    Q = a.shape[0]
+    d = modes_int.shape[1]
+    Nd = N_x ** d
+    fft_dims = tuple(range(1, d + 1))
+
+    c = torch.complex(a, -b) / 2                                    # (Q, J)
+    strides = torch.tensor([N_x ** (d - 1 - i) for i in range(d)],
+                           device=device, dtype=torch.int64)
+    lin_pos = ((modes_int.to(torch.int64) % N_x) * strides).sum(-1)   # (J,)
+    lin_neg = (((-modes_int).to(torch.int64) % N_x) * strides).sum(-1)
+
+    C_flat = torch.zeros(Q, Nd, dtype=cdtype, device=device)
+    C_flat = C_flat.index_add(1, lin_pos, c.to(cdtype))
+    C_flat = C_flat.index_add(1, lin_neg, c.conj().to(cdtype))
+
+    u_grid = (torch.fft.ifftn(C_flat.view(Q, *([N_x] * d)), dim=fft_dims) * Nd).real
+    U3 = torch.fft.fftn(u_grid ** 3, dim=fft_dims).reshape(Q, Nd)
+    u3_k = U3[:, lin_pos]                                            # (Q, J)
+    return (2 * u3_k.real / Nd).to(dtype), (-2 * u3_k.imag / Nd).to(dtype)
+
+
+def _default_chunk(N_q: int, N_x: int, d: int, dtype) -> int:
+    """Largest q-block whose (chunk, N_x^d) complex buffer stays under ~256 MB.
+
+    Batching trades launches for memory, and at d=4 the grid is N_x^4 = 1,048,576 points,
+    so the full N_q=256 batch would want ~2 GB for one intermediate and several times that
+    with the autograd graph. Chunking keeps the win while bounding the peak; chunk=1
+    reproduces the original loop exactly.
+    """
+    itemsize = 16 if dtype == torch.float64 else 8
+    per_q = (N_x ** d) * itemsize
+    return max(1, min(N_q, (256 << 20) // max(per_q, 1)))
+
+
+def loss_rv_ac(model, oracle, N_q: int = 16, N_x: int = 32, chunk: int = None):
     """RVPINN loss for Allen-Cahn."""
     _warn_temporal_aliasing(N_q, oracle.L_test)
     device, dtype = oracle.device, oracle.dtype
@@ -127,13 +178,20 @@ def loss_rv_ac(model, oracle, N_q: int = 16, N_x: int = 32):
     a_q = exp_decay * oracle.a0[None, :] + phi_q @ alpha.T      # (N_q, J)
     b_q = exp_decay * oracle.b0[None, :] + phi_q @ beta.T
 
+    # Batched over the quadrature axis in blocks of `chunk`. The per-q loop this replaces
+    # was dispatch-bound: ~15 tiny kernel launches per node, N_q nodes, 5000 steps.
+    if chunk is None:
+        chunk = _default_chunk(N_q, N_x, oracle.modes_int.shape[1], dtype)
     cubic_a = torch.zeros(J, L, device=device, dtype=dtype)
     cubic_b = torch.zeros(J, L, device=device, dtype=dtype)
-    for q in range(N_q):
-        ua3, ub3 = cubic_proj_fft(a_q[q], b_q[q], oracle.modes_int,
-                                   N_x, device, dtype)
-        cubic_a = cubic_a + w_q[q] * ua3[:, None] * phi_q[q].unsqueeze(0)
-        cubic_b = cubic_b + w_q[q] * ub3[:, None] * phi_q[q].unsqueeze(0)
+    for q0 in range(0, N_q, chunk):
+        sl = slice(q0, min(q0 + chunk, N_q))
+        ua3, ub3 = cubic_proj_fft_batched(a_q[sl], b_q[sl], oracle.modes_int,
+                                          N_x, device, dtype)
+        wq = w_q[sl][:, None]                                   # (q, 1)
+        # cubic[j,l] = sum_q w_q * u3[q,j] * phi_q[q,l]  -- one matmul, not q rank-1 updates
+        cubic_a = cubic_a + (ua3 * wq).T @ phi_q[sl]
+        cubic_b = cubic_b + (ub3 * wq).T @ phi_q[sl]
 
     R_a = R_a + cubic_a - sigma * oracle.I_a   # (J, L)
     R_b = R_b + cubic_b - sigma * oracle.I_b
